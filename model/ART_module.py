@@ -28,7 +28,7 @@ import torch
 from torch import nn, Tensor
 import torch.nn.functional as F
 
-from .modules import (
+from .ART_modules import (
     ExpandConv1x1,
     PositionalEmbedding,
     MultiHeadAttention,

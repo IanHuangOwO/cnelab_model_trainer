@@ -9,7 +9,7 @@ without reaching into submodules.
 """
 
 # Expose core modules and models for easy import
-from .modules import (
+from .ART_modules import (
     PositionalEmbedding,
     ScaledDotProductAttention,
     MultiHeadAttention,
@@ -17,7 +17,7 @@ from .modules import (
     ExpandConv1x1,
 )
 
-from .ART import (
+from .ART_modal import (
     ArtifactRemovalTransformer
 )
 
