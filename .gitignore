@@ -2,12 +2,7 @@
 /GiT
 __pycache__/
 *.log
-*.pyc
-*.tiff
-*.tif
-*.gz
 *.pth
-*.png
 *.csv
 *.xlsx
 .env

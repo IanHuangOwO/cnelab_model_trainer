@@ -1,15 +1,4 @@
-"""Public API for the `model` package.
-
-Exports generic building blocks from `model.modules` and the ART architecture
-from `model.ART`. Keep this file minimal so import sites can do:
-
-    from model import ArtifactRemovalTransformer, ExpandConv1x1
-
-without reaching into submodules.
-"""
-
-# Expose core modules and models for easy import
-from .ART_modules import (
+from .ART_blocks import (
     PositionalEmbedding,
     ScaledDotProductAttention,
     MultiHeadAttention,
@@ -17,7 +6,7 @@ from .ART_modules import (
     ExpandConv1x1,
 )
 
-from .ART_modal import (
+from .ART import (
     ArtifactRemovalTransformer
 )
 

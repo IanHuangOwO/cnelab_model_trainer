@@ -1,18 +1,3 @@
-"""Generic building blocks used by models in this repository.
-
-This module keeps reusable, framework-agnostic layers:
-
-- ExpandConv1x1: 1x1 convolution to project channel dimension (c -> d) per time step.
-- PositionalEmbedding: learned or sinusoidal positional encodings added to inputs.
-- ScaledDotProductAttention: core attention primitive with masking and dropout.
-- MultiHeadAttention: standard multi-head attention over sequences.
-- FeedForward: position-wise MLP (two linear layers with activation and dropout).
-
-All layers expect PyTorch tensors and favor clear shape semantics documented
-in each class. These blocks are intentionally generic so they can be composed
-into different architectures (e.g., ART in model/ART.py).
-"""
-
 import math
 from typing import Optional
 
@@ -21,16 +6,6 @@ from torch import nn, Tensor
 
 
 class ExpandConv1x1(nn.Module):
-    """1x1 Conv channel projector: (B, C, T) -> (B, T, D).
-
-    Args:
-        in_channels: input channel count C.
-        out_channels: model dim D after projection.
-        bias: whether Conv1d uses bias.
-        activation: optional activation (str or nn.Module), e.g., 'relu' or 'gelu'.
-        dropout: dropout probability applied after activation.
-    """
-
     def __init__(
         self,
         in_channels: int,
@@ -67,19 +42,6 @@ class ExpandConv1x1(nn.Module):
 
 
 class PositionalEmbedding(nn.Module):
-    """Add positional information to a sequence.
-
-    Supports either learned embeddings or fixed sinusoidal encodings.
-
-    Args:
-        max_len: Maximum sequence length supported by the buffer/table.
-        d_model: Embedding dimension (last dim of input/output).
-        mode: 'learned' or 'sinusoidal'.
-
-    Input/Output:
-        x: (B, S, d_model) → returns (B, S, d_model) with positions added.
-    """
-
     def __init__(self, max_len: int, d_model: int, mode: str = "learned") -> None:
         super().__init__()
         if mode not in {"learned", "sinusoidal"}:
@@ -113,13 +75,6 @@ class PositionalEmbedding(nn.Module):
 
 
 class ScaledDotProductAttention(nn.Module):
-    """Scaled dot-product attention with optional mask and dropout.
-
-    Mask semantics (broadcast to (..., Q, K)):
-      - Boolean: True means masked/excluded (logits set to -inf).
-      - Float   : Additive mask added to logits (0 keep, -inf mask).
-    """
-
     def __init__(self, dropout: float = 0.0) -> None:
         super().__init__()
         self.drop = nn.Dropout(dropout)
@@ -144,14 +99,6 @@ class ScaledDotProductAttention(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    """Multi-head attention over sequences.
-
-    Input/Output shapes:
-      - q, k, v: (B, S, d_model)
-      - attn_mask: broadcastable to (B, H, S_q, S_k) with True = mask
-      - returns: (B, S, d_model)
-    """
-
     def __init__(self, d_model: int, num_heads: int, dropout: float = 0.0) -> None:
         super().__init__()
         if d_model % num_heads != 0:
@@ -201,8 +148,6 @@ class MultiHeadAttention(nn.Module):
 
 
 class FeedForward(nn.Module):
-    """Position-wise MLP (two linear layers with activation and dropout)."""
-
     def __init__(
         self,
         d_model: int,
