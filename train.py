@@ -83,7 +83,7 @@ def main() -> None:
 
     # Resolve save_dir from config, allow CLI override
     cfg_train = cfg.get("train", {}) if isinstance(cfg, dict) else {}
-    save_dir = args.save_dir or cfg_train.get("save_dir") or os.path.join(os.getcwd(), "checkpoints")
+    save_dir = args.save_dir or cfg_train.get("save_dir")
 
     # Build loss and metrics from config
     loss_comp = LossComputer(cfg)
