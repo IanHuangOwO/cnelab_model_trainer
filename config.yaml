@@ -1,0 +1,57 @@
+# data:
+#   root: ./real_EEG
+#   splits:
+#     train:
+#       - S001.csv
+#       - S002.csv
+#       - S003.csv
+#     val:
+#       - S101.csv
+#       - S102.csv
+#     test:
+#       - S201.csv
+
+data:
+  root: ./synthetic
+  splits:
+    train:
+      C: 30
+      T: 1024
+      sample_rate: 256.0
+      length: 5000
+      target:
+        mode: sine
+        noise_std: 0.0
+        num_components: 4
+      attr:
+        mode: mixed
+        noise_std: 0.15
+        num_components: 4
+    
+    val:
+      C: 30
+      T: 1024
+      sample_rate: 256.0
+      length: 500
+      target:
+        mode: sine
+        noise_std: 0.0
+        num_components: 3
+      attr:
+        mode: mixed
+        noise_std: 0.15
+        num_components: 3
+    
+    test:
+      C: 30
+      T: 1024
+      sample_rate: 256.0
+      length: 500
+      target:
+        mode: sine
+        noise_std: 0.0
+        num_components: 3
+      attr:
+        mode: mixed
+        noise_std: 0.15
+        num_components: 3
