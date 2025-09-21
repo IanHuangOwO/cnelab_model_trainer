@@ -4,7 +4,7 @@ import torch
 from torch import nn, Tensor
 import torch.nn.functional as F
 
-from .ART_blocks import (
+from model.ART_blocks import (
     ExpandConv1x1,
     PositionalEmbedding,
     MultiHeadAttention,

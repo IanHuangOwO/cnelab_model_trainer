@@ -1,4 +1,4 @@
-from .ART_blocks import (
+from model.ART_blocks import (
     PositionalEmbedding,
     ScaledDotProductAttention,
     MultiHeadAttention,
@@ -6,7 +6,7 @@ from .ART_blocks import (
     ExpandConv1x1,
 )
 
-from .ART import (
+from model.ART import (
     ArtifactRemovalTransformer
 )
 

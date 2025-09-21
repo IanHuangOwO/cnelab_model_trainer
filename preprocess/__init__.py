@@ -1,4 +1,4 @@
-from .collate import (
+from preprocess.collate import (
     CollatedBatch,
     collate_eeg_batch_channel,
 )

@@ -3,13 +3,14 @@ import time
 import torch
 from EEGART.tf_opt import NoamOpt
 from EEGART.tf_loss import LabelSmoothing, SimpleLossCompute
-from EEGART.tf_model import make_model, create_model
+from EEGART.tf_model import create_model
 from IO import create_dataset
 from preprocess import collate_eeg_batch_channel
 from EEGART.tf_utils import save_checkpoint, draw
+
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 torch.cuda.empty_cache()
-
 
 class model_train_parameter():
     def __init__(self, loss, save, data, train_len):
