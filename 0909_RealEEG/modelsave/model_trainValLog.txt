@@ -1,2 +1,0 @@
-
-Epoch	Loss(Tr)	Loss(val)	Loss(Ts)	Learning_rate	Time

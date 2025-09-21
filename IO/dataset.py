@@ -32,7 +32,7 @@ class EEGDataset(Dataset):
     def __init__(
         self,
         *,
-        config_path: str,
+        config: Dict,
         mode: str = "train",
         transform: Optional[Callable[[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]]] = None,
         target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
@@ -40,7 +40,7 @@ class EEGDataset(Dataset):
     ) -> None:
         super().__init__()
 
-        cfg = self._load_config(config_path)
+        cfg = config
         data_cfg = cfg.get("data", cfg)
         root = data_cfg.get("root")
         if not root:
@@ -107,14 +107,7 @@ class EEGDataset(Dataset):
         }
         return attr, target, meta
     
-    @staticmethod
-    def _load_config(path: str) -> Dict:
-        try:
-            import yaml  # type: ignore
-        except Exception as e:
-            raise ImportError("PyYAML is required to load YAML configs. Install with `pip install pyyaml`.") from e
-        with open(path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    # No internal config loading; pass config dict to the constructor
 
 
 class GenEEGDataset(Dataset):
@@ -137,7 +130,7 @@ class GenEEGDataset(Dataset):
     def __init__(
         self,
         *,
-        config_path: str,
+        config: Dict,
         mode: str = "train",
         transform: Optional[Callable[[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]]] = None,
         target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
@@ -145,7 +138,7 @@ class GenEEGDataset(Dataset):
     ) -> None:
         super().__init__()
 
-        cfg = EEGDataset._load_config(config_path)
+        cfg = config
         data_cfg = cfg.get("data", cfg)
         gen_cfg = (data_cfg.get("splits") or cfg.get("splits") or {})
         split_cfg: Dict = gen_cfg.get(mode, {}) if isinstance(gen_cfg, dict) else {}
@@ -218,7 +211,7 @@ class GenEEGDataset(Dataset):
 
 def create_dataset(
     *,
-    config_path: str,
+    cfg: Dict,
     mode: str = "train",
     transform: Optional[Callable[[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]]] = None,
     target_transform: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
@@ -229,14 +222,13 @@ def create_dataset(
     Heuristic: if data.root exists and contains <mode>/Brain, use EEGDataset;
     otherwise use GenEEGDataset with parameters from data.gen[mode].
     """
-    cfg = EEGDataset._load_config(config_path)
     data_cfg = cfg.get("data", cfg)
     root = data_cfg.get("root")
     if isinstance(root, str):
         base_dir = os.path.join(root, mode, "Brain")
         if os.path.isdir(base_dir):
             return EEGDataset(
-                config_path=config_path,
+                config=cfg,
                 mode=mode,
                 transform=transform,
                 target_transform=target_transform,
@@ -244,7 +236,7 @@ def create_dataset(
             )
     # Fallback to generated dataset
     return GenEEGDataset(
-        config_path=config_path,
+        config=cfg,
         mode=mode,
         transform=transform,
         target_transform=target_transform,

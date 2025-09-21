@@ -3,6 +3,7 @@ from typing import Dict, Optional
 
 import torch
 import torch.nn as nn
+from train.metrics import mse as metric_mse, mae as metric_mae
 
 
 def _to_btC(t: torch.Tensor) -> torch.Tensor:
@@ -61,9 +62,8 @@ class LossComputer:
             main = _masked_mean((x - y).pow(2), keep_mask)
 
         # Metrics (without z-score) for reference
-        x_raw, y_raw = _to_btC(out), _to_btC(target)
-        mse_val = float(_masked_mean((x_raw - y_raw).pow(2), keep_mask).detach().cpu())
-        mae_val = float(_masked_mean((x_raw - y_raw).abs(), keep_mask).detach().cpu())
+        mae_val = metric_mae(out, target, keep_mask)
+        mse_val = metric_mse(out, target, keep_mask)
         logs = {"loss": float(main.detach().cpu()), "mse": mse_val, "mae": mae_val}
 
         # Norm: approx number of valid elements

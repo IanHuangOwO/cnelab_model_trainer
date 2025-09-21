@@ -1,15 +1,64 @@
+############################################################
+# Training configuration
+############################################################
+
+train:
+  epochs: 60
+  lr: 0.0                       # ignored if using Noam scheduler
+  optimizer:
+    type: Adam
+    betas: [0.9, 0.98]
+    eps: 1e-9
+  scheduler:
+    type: Noam
+    factor: 1.0
+    warmup: 400
+  loss:
+    type: mse                   # or mae
+    zscore: true                # z-score per sample across time before loss
+  metrics: [mse, mae]           # optional extras: corr, r2, rmse
+  data_loader:
+    batch_size: 32
+    num_workers: 8
+    pin_memory: true
+  save_dir: ./checkpoints
+  resume: false
+  resume_path: ./checkpoints/checkpoint.pth
+  
+
+############################################################
+# Model configuration
+############################################################
+
+model:
+  in_channels: 30
+  out_channels: 30
+  embedding_size: 128         # aka d_model
+  feedforward_size: 2048      # aka d_ff
+  num_layers: 2               # used for both encoder/decoder
+  num_heads: 8
+  dropout: 0.1
+  max_len: 2048
+  pos_mode: sinusoidal        # or learned
+  recon_log_softmax: false
+  recon_zscore: null          # null | batch | time
+
+
+############################################################
+# Dataset configuration
+
+# Uncomment and set root to use a real dataset.
+# The factory will pick RealEEGDataset if root exists and contains files.
+# Otherwise it will pick GenEEGDataset and use the provided params to
+# generate synthetic data on the fly.
+############################################################
+
 # data:
-#   root: ./real_EEG
+#   root: ./Real_EEG
 #   splits:
-#     train:
-#       - S001.csv
-#       - S002.csv
-#       - S003.csv
-#     val:
-#       - S101.csv
-#       - S102.csv
-#     test:
-#       - S201.csv
+#     train: [S001.csv, S002.csv]
+#     val:   [S101.csv]
+#     test:  [S201.csv]
 
 data:
   root: ./synthetic
@@ -19,39 +68,19 @@ data:
       T: 1024
       sample_rate: 256.0
       length: 5000
-      target:
-        mode: sine
-        noise_std: 0.0
-        num_components: 4
-      attr:
-        mode: mixed
-        noise_std: 0.15
-        num_components: 4
-    
+      target: { mode: sine,  noise_std: 0.0,  num_components: 4 }
+      attr:   { mode: mixed, noise_std: 0.15, num_components: 4 }
     val:
       C: 30
       T: 1024
       sample_rate: 256.0
       length: 500
-      target:
-        mode: sine
-        noise_std: 0.0
-        num_components: 3
-      attr:
-        mode: mixed
-        noise_std: 0.15
-        num_components: 3
-    
+      target: { mode: sine,  noise_std: 0.0,  num_components: 3 }
+      attr:   { mode: mixed, noise_std: 0.15, num_components: 3 }
     test:
       C: 30
       T: 1024
       sample_rate: 256.0
       length: 500
-      target:
-        mode: sine
-        noise_std: 0.0
-        num_components: 3
-      attr:
-        mode: mixed
-        noise_std: 0.15
-        num_components: 3
+      target: { mode: sine,  noise_std: 0.0,  num_components: 3 }
+      attr:   { mode: mixed, noise_std: 0.15, num_components: 3 }

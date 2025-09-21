@@ -17,11 +17,11 @@ class ArtifactRemovalTransformer(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        d_model: int = 128,
+        embedding_size: int = 128,
         num_encoder_layers: int = 6,
         num_decoder_layers: int = 6,
         num_heads: int = 8,
-        d_ff: int = 2048,
+        feedforward_size: int = 2048,
         dropout: float = 0.1,
         max_len: int = 2048,
         pos_mode: str = "sinusoidal",
@@ -31,36 +31,36 @@ class ArtifactRemovalTransformer(nn.Module):
         super().__init__()
         
         self.src_embed = nn.Sequential(
-            ExpandConv1x1(in_channels, d_model),
-            PositionalEmbedding(max_len=max_len, d_model=d_model, mode=pos_mode),
+            ExpandConv1x1(in_channels, embedding_size),
+            PositionalEmbedding(max_len=max_len, d_model=embedding_size, mode=pos_mode),
             nn.Dropout(dropout),
         )
 
         self.encoder = TransformerEncoder(
-            d_model=d_model,
+            d_model=embedding_size,
             num_layers=num_encoder_layers,
             num_heads=num_heads,
-            d_ff=d_ff,
+            d_ff=feedforward_size,
             dropout=dropout,
             attn_dropout=dropout,
         )
         
         self.tgt_embed = nn.Sequential(
-            ExpandConv1x1(out_channels, d_model),
-            PositionalEmbedding(max_len=max_len, d_model=d_model, mode=pos_mode),
+            ExpandConv1x1(out_channels, embedding_size),
+            PositionalEmbedding(max_len=max_len, d_model=embedding_size, mode=pos_mode),
             nn.Dropout(dropout),
         )
         self.decoder = TransformerDecoder(
-            d_model=d_model,
+            d_model=embedding_size,
             num_layers=num_decoder_layers,
             num_heads=num_heads,
-            d_ff=d_ff,
+            d_ff=feedforward_size,
             dropout=dropout,
             attn_dropout=dropout,
         )
         
         self.reconstructor = Reconstructor(
-            d_model=d_model,
+            d_model=embedding_size,
             out_channels=out_channels,
             log_softmax=recon_log_softmax,
             zscore=recon_zscore,
@@ -276,6 +276,52 @@ class Reconstructor(nn.Module):
         return (y - mean) / (std + self.eps)
 
 
+def build_model_from_config(cfg: dict) -> ArtifactRemovalTransformer:
+    """Build ArtifactRemovalTransformer from a loaded config dict.
+
+    Accepts either the full config with a top-level "model" section or a
+    dict that is itself the model section.
+    """
+    m = cfg.get("model", cfg) if isinstance(cfg, dict) else {}
+
+    in_channels = int(m.get("in_channels", 30))
+    out_channels = int(m.get("out_channels", 30))
+
+    # Widths
+    embedding_size = int(m.get("embedding_size", 128))
+    feedforward_size = int(m.get("feedforward_size", 2048))
+
+    # Depths
+    num_layers = int(m.get("num_layers", 6))
+    num_encoder_layers = int(m.get("num_encoder_layers", num_layers))
+    num_decoder_layers = int(m.get("num_decoder_layers", num_layers))
+
+    # Attention/regularization
+    num_heads = int(m.get("num_heads", 8))
+    dropout = float(m.get("dropout", 0.1))
+    max_len = int(m.get("max_len", 2048))
+    pos_mode = str(m.get("pos_mode", "sinusoidal"))
+
+    # Reconstruction head options
+    recon_log_softmax = bool(m.get("recon_log_softmax", False))
+    recon_zscore = m.get("recon_zscore", None)
+
+    return ArtifactRemovalTransformer(
+        in_channels=in_channels,
+        out_channels=out_channels,
+        embedding_size=embedding_size,
+        feedforward_size=feedforward_size,
+        num_encoder_layers=num_encoder_layers,
+        num_decoder_layers=num_decoder_layers,
+        num_heads=num_heads,
+        dropout=dropout,
+        max_len=max_len,
+        pos_mode=pos_mode,
+        recon_log_softmax=recon_log_softmax,
+        recon_zscore=recon_zscore,
+    )
+
 __all__ = [
     "ArtifactRemovalTransformer",
+    "build_model_from_config"
 ]

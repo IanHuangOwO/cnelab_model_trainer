@@ -7,7 +7,8 @@ from model.ART_blocks import (
 )
 
 from model.ART import (
-    ArtifactRemovalTransformer
+    ArtifactRemovalTransformer,
+    build_model_from_config,
 )
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "FeedForward",
     "ExpandConv1x1",
     "ArtifactRemovalTransformer",
+    "build_model_from_config"
 ]
