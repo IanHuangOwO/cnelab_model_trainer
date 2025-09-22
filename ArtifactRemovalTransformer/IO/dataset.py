@@ -209,7 +209,7 @@ class GenEEGDataset(Dataset):
         return attr, target, meta
 
 
-def create_dataset(
+def build_dataset_from_config(
     *,
     cfg: Dict,
     mode: str = "train",
@@ -246,5 +246,5 @@ def create_dataset(
 __all__ = [
     "EEGDataset",
     "GenEEGDataset",
-    "create_dataset",
+    "build_dataset_from_config",
 ]

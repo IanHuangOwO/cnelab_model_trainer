@@ -5,7 +5,7 @@ import os
 
 from torch.utils.data import DataLoader
 
-from IO import create_dataset
+from IO import build_dataset_from_config
 from preprocess import collate_eeg_batch_channel
 from train import Trainer, build_noam_from_config, LossComputer, MetricsComputer
 from model import build_model_from_config
@@ -32,9 +32,9 @@ def build_loaders(cfg: dict, seed: int | None) -> tuple[DataLoader, DataLoader, 
     num_workers = int(dl_cfg.get("num_workers", 4))
     pin_memory = bool(dl_cfg.get("pin_memory", True))
 
-    train_ds = create_dataset(cfg=cfg, mode="train", seed=seed)
-    val_ds = create_dataset(cfg=cfg, mode="val", seed=seed)
-    test_ds = create_dataset(cfg=cfg, mode="test", seed=seed)
+    train_ds = build_dataset_from_config(cfg=cfg, mode="train", seed=seed)
+    val_ds = build_dataset_from_config(cfg=cfg, mode="val", seed=seed)
+    test_ds = build_dataset_from_config(cfg=cfg, mode="test", seed=seed)
 
     train_loader = DataLoader(
         train_ds,
