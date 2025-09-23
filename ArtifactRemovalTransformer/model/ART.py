@@ -11,95 +11,6 @@ from model.ART_blocks import (
     FeedForward,
 )
 
-
-class ArtifactRemovalTransformer(nn.Module):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        embedding_size: int = 128,
-        num_encoder_layers: int = 6,
-        num_decoder_layers: int = 6,
-        num_heads: int = 8,
-        feedforward_size: int = 2048,
-        dropout: float = 0.1,
-        max_len: int = 2048,
-        pos_mode: str = "sinusoidal",
-        recon_log_softmax: bool = False,
-        recon_zscore: str | None = None,
-    ) -> None:
-        super().__init__()
-        
-        self.src_embed = nn.Sequential(
-            ExpandConv1x1(in_channels, embedding_size),
-            PositionalEmbedding(max_len=max_len, d_model=embedding_size, mode=pos_mode),
-            nn.Dropout(dropout),
-        )
-
-        self.encoder = TransformerEncoder(
-            d_model=embedding_size,
-            num_layers=num_encoder_layers,
-            num_heads=num_heads,
-            d_ff=feedforward_size,
-            dropout=dropout,
-            attn_dropout=dropout,
-        )
-        
-        self.tgt_embed = nn.Sequential(
-            ExpandConv1x1(out_channels, embedding_size),
-            PositionalEmbedding(max_len=max_len, d_model=embedding_size, mode=pos_mode),
-            nn.Dropout(dropout),
-        )
-        self.decoder = TransformerDecoder(
-            d_model=embedding_size,
-            num_layers=num_decoder_layers,
-            num_heads=num_heads,
-            d_ff=feedforward_size,
-            dropout=dropout,
-            attn_dropout=dropout,
-        )
-        
-        self.reconstructor = Reconstructor(
-            d_model=embedding_size,
-            out_channels=out_channels,
-            log_softmax=recon_log_softmax,
-            zscore=recon_zscore,
-        )
-
-    def forward(
-        self,
-        src: Tensor,
-        tgt: Optional[Tensor] = None,
-        src_mask: Optional[Tensor] = None,
-        tgt_mask: Optional[Tensor] = None,
-    ) -> Tensor:
-        enc = self.src_embed(src)
-        
-        enc_attn_mask = None
-        if src_mask is not None:
-            if src_mask.dtype == torch.bool:
-                m = src_mask
-            else:
-                m = src_mask != 0
-            if m.dim() == 3:  # (B, 1, S)
-                enc_attn_mask = (~m).unsqueeze(1)
-            elif m.dim() == 2:  # (B, S)
-                enc_attn_mask = (~m).unsqueeze(1).unsqueeze(1)
-            else:
-                enc_attn_mask = ~m
-
-        memory = self.encoder(enc, attn_mask=enc_attn_mask)
-        
-        dec_inp = self.tgt_embed(tgt)
-        
-        self_attn_mask = None
-
-        cross_attn_mask = enc_attn_mask
-        out = self.decoder(dec_inp, memory, self_attn_mask, cross_attn_mask)
-        
-        return self.reconstructor(out)
-
-
 class TransformerEncoderBlock(nn.Module):
     def __init__(
         self,
@@ -124,46 +35,6 @@ class TransformerEncoderBlock(nn.Module):
         
         h = self.ffn(x)
         x = self.ln2(x + self.drop2(h))
-        return x
-
-
-class TransformerDecoderBlock(nn.Module):
-    def __init__(
-        self,
-        d_model: int,
-        num_heads: int,
-        d_ff: int,
-        dropout: float = 0.0,
-        attn_dropout: float = 0.0,
-    ) -> None:
-        super().__init__()
-        self.ln1 = nn.LayerNorm(d_model, eps=1e-5)
-        self.self_mha = MultiHeadAttention(d_model, num_heads, dropout=attn_dropout)
-        self.drop1 = nn.Dropout(dropout)
-
-        self.ln2 = nn.LayerNorm(d_model, eps=1e-5)
-        self.cross_mha = MultiHeadAttention(d_model, num_heads, dropout=attn_dropout)
-        self.drop2 = nn.Dropout(dropout)
-
-        self.ln3 = nn.LayerNorm(d_model, eps=1e-5)
-        self.ffn = FeedForward(d_model, d_ff, dropout=dropout)
-        self.drop3 = nn.Dropout(dropout)
-
-    def forward(
-        self,
-        x: Tensor,
-        memory: Tensor,
-        self_attn_mask: Optional[Tensor] = None,
-        cross_attn_mask: Optional[Tensor] = None,
-    ) -> Tensor:
-        h = self.self_mha(x, x, x, attn_mask=self_attn_mask)
-        x = self.ln1(x + self.drop1(h))
-
-        h = self.cross_mha(x, memory, memory, attn_mask=cross_attn_mask)
-        x = self.ln2(x + self.drop2(h))
-
-        h = self.ffn(x)
-        x = self.ln3(x + self.drop3(h))
         return x
 
 
@@ -201,6 +72,46 @@ class TransformerEncoder(nn.Module):
         for layer in self.layers:
             x = layer(x, attn_mask=attn_mask)
         return self.norm(x)
+
+
+class TransformerDecoderBlock(nn.Module):
+    def __init__(
+        self,
+        d_model: int,
+        num_heads: int,
+        d_ff: int,
+        dropout: float = 0.0,
+        attn_dropout: float = 0.0,
+    ) -> None:
+        super().__init__()
+        self.ln1 = nn.LayerNorm(d_model, eps=1e-5)
+        self.self_mha = MultiHeadAttention(d_model, num_heads, dropout=attn_dropout)
+        self.drop1 = nn.Dropout(dropout)
+
+        self.ln2 = nn.LayerNorm(d_model, eps=1e-5)
+        self.cross_mha = MultiHeadAttention(d_model, num_heads, dropout=attn_dropout)
+        self.drop2 = nn.Dropout(dropout)
+
+        self.ln3 = nn.LayerNorm(d_model, eps=1e-5)
+        self.ffn = FeedForward(d_model, d_ff, dropout=dropout)
+        self.drop3 = nn.Dropout(dropout)
+
+    def forward(
+        self,
+        x: Tensor,
+        memory: Tensor,
+        self_attn_mask: Optional[Tensor] = None,
+        cross_attn_mask: Optional[Tensor] = None,
+    ) -> Tensor:
+        h = self.self_mha(x, x, x, attn_mask=cross_attn_mask)
+        x = self.ln1(x + self.drop1(h))
+
+        h = self.cross_mha(x, memory, memory, attn_mask=self_attn_mask)
+        x = self.ln2(x + self.drop2(h))
+
+        h = self.ffn(x)
+        x = self.ln3(x + self.drop3(h))
+        return x
 
 
 class TransformerDecoder(nn.Module):
@@ -274,6 +185,77 @@ class Reconstructor(nn.Module):
         else:
             raise ValueError(f"Unsupported zscore mode: {self.zscore}")
         return (y - mean) / (std + self.eps)
+
+class ArtifactRemovalTransformer(nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        embedding_size: int = 128,
+        num_encoder_layers: int = 6,
+        num_decoder_layers: int = 6,
+        num_heads: int = 8,
+        feedforward_size: int = 2048,
+        dropout: float = 0.1,
+        max_len: int = 2048,
+        pos_mode: str = "sinusoidal",
+        recon_log_softmax: bool = False,
+        recon_zscore: str | None = None,
+    ) -> None:
+        super().__init__()
+        
+        self.src_embed = nn.Sequential(
+            ExpandConv1x1(in_channels, embedding_size),
+            PositionalEmbedding(max_len=max_len, d_model=embedding_size, mode=pos_mode),
+            nn.Dropout(dropout),
+        )
+
+        self.encoder = TransformerEncoder(
+            d_model=embedding_size,
+            num_layers=num_encoder_layers,
+            num_heads=num_heads,
+            d_ff=feedforward_size,
+            dropout=dropout,
+            attn_dropout=dropout,
+        )
+        
+        self.tgt_embed = nn.Sequential(
+            ExpandConv1x1(out_channels, embedding_size),
+            PositionalEmbedding(max_len=max_len, d_model=embedding_size, mode=pos_mode),
+            nn.Dropout(dropout),
+        )
+        self.decoder = TransformerDecoder(
+            d_model=embedding_size,
+            num_layers=num_decoder_layers,
+            num_heads=num_heads,
+            d_ff=feedforward_size,
+            dropout=dropout,
+            attn_dropout=dropout,
+        )
+        
+        self.reconstructor = Reconstructor(
+            d_model=embedding_size,
+            out_channels=out_channels,
+            log_softmax=recon_log_softmax,
+            zscore=recon_zscore,
+        )
+
+    def forward(
+        self,
+        src: Tensor,
+        tgt: Optional[Tensor] = None,
+        src_mask: Optional[Tensor] = None,
+        tgt_mask: Optional[Tensor] = None,
+    ) -> Tensor:
+        src_x = self.src_embed(src)
+
+        memory = self.encoder(src_x, attn_mask=src_mask)
+        
+        tgt_x = self.tgt_embed(tgt)
+
+        out = self.decoder(tgt_x, memory, src_mask, tgt_mask)
+        
+        return self.reconstructor(out)
 
 
 def build_model_from_config(cfg: dict) -> ArtifactRemovalTransformer:
