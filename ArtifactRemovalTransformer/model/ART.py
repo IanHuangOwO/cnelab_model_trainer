@@ -4,12 +4,20 @@ import torch
 from torch import nn, Tensor
 import torch.nn.functional as F
 
-from model.ART_blocks import (
-    ExpandConv1x1,
-    PositionalEmbedding,
-    MultiHeadAttention,
-    FeedForward,
-)
+try:
+    from .ART_blocks import (
+        ExpandConv1x1,
+        PositionalEmbedding,
+        MultiHeadAttention,
+        FeedForward,
+    )
+except ImportError:
+    from ART_blocks import (
+        ExpandConv1x1,
+        PositionalEmbedding,
+        MultiHeadAttention,
+        FeedForward,
+    )
 
 class TransformerEncoderBlock(nn.Module):
     def __init__(
@@ -320,3 +328,46 @@ __all__ = [
     "ArtifactRemovalTransformer",
     "build_model_from_config"
 ]
+
+
+if __name__ == "__main__":
+    # Helper to export a default ArtifactRemovalTransformer to ONNX for Netron
+    def export_default_onnx(out_path: str = "ArtifactRemovalTransformer.onnx") -> None:
+        in_ch, out_ch = 30, 30
+        model = ArtifactRemovalTransformer(
+            in_channels=in_ch,
+            out_channels=out_ch,
+            embedding_size=128,
+            num_encoder_layers=2,
+            num_decoder_layers=2,
+            num_heads=8,
+            feedforward_size=512,
+            dropout=0.1,
+            max_len=2048,
+            pos_mode="sinusoidal",
+            recon_log_softmax=False,
+            recon_zscore=None,
+        )
+        model.eval()
+
+        # The forward expects both src and tgt; provide dummy tensors
+        T = 256
+        src = torch.randn(1, in_ch, T)
+        tgt = torch.randn(1, out_ch, T)
+
+        torch.onnx.export(
+            model,
+            (src, tgt),
+            out_path,
+            input_names=["src", "tgt"],
+            output_names=["y"],
+            opset_version=14,
+            dynamic_axes={
+                "src": {0: "batch", 2: "time"},
+                "tgt": {0: "batch", 2: "time"},
+                "y": {0: "batch", 2: "time"},
+            },
+        )
+        print(f"Exported ONNX to {out_path}")
+
+    export_default_onnx()
