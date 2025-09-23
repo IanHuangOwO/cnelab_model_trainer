@@ -18,5 +18,5 @@ __all__ = [
     "FeedForward",
     "ExpandConv1x1",
     "ArtifactRemovalTransformer",
-    "build_model_from_config"
+    "build_model_from_config",
 ]

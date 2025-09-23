@@ -113,9 +113,9 @@ class Trainer:
         metric_sums: Dict[str, float] = {}
 
         # Progress bar with dynamic postfix
-        pbar = tqdm(enumerate(loader), total=len(loader), desc="Train" if training else "Eval", leave=False)
+        pbar = tqdm(loader, total=len(loader), desc="Train" if training else "Eval", leave=False)
 
-        for i, batch in pbar:
+        for batch in pbar:
             if hasattr(batch, "to"):
                 batch = batch.to(self.device)
 
