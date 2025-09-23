@@ -65,7 +65,7 @@ def build_loaders(cfg: dict, seed: int | None) -> tuple[DataLoader, DataLoader, 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train ArtifactRemovalTransformer")
-    parser.add_argument("--config", default="config.yaml", help="Path to YAML config")
+    parser.add_argument("--config", default="./config.yaml", help="Path to YAML config")
     parser.add_argument("--save-dir", default=None, help="Override save dir (read from config if not set)")
     parser.add_argument("--epochs", type=int, default=None, help="Override number of epochs from config")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for dataset generation/shuffling")

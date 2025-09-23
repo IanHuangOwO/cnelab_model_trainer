@@ -103,10 +103,10 @@ class TransformerDecoderBlock(nn.Module):
         self_attn_mask: Optional[Tensor] = None,
         cross_attn_mask: Optional[Tensor] = None,
     ) -> Tensor:
-        h = self.self_mha(x, x, x, attn_mask=cross_attn_mask)
+        h = self.self_mha(x, x, x, attn_mask=self_attn_mask)
         x = self.ln1(x + self.drop1(h))
 
-        h = self.cross_mha(x, memory, memory, attn_mask=self_attn_mask)
+        h = self.cross_mha(x, memory, memory, attn_mask=cross_attn_mask)
         x = self.ln2(x + self.drop2(h))
 
         h = self.ffn(x)
@@ -248,12 +248,25 @@ class ArtifactRemovalTransformer(nn.Module):
         tgt_mask: Optional[Tensor] = None,
     ) -> Tensor:
         src_x = self.src_embed(src)
+        
+        enc_attn_mask = None
+        if src_mask is not None:
+            if src_mask.dtype != torch.bool:
+                src_mask = src_mask.to(torch.bool)
+            enc_attn_mask = (~src_mask).unsqueeze(1).unsqueeze(2)  # (B, 1, 1, T)
 
-        memory = self.encoder(src_x, attn_mask=src_mask)
+        memory = self.encoder(src_x, attn_mask=enc_attn_mask)
         
         tgt_x = self.tgt_embed(tgt)
 
-        out = self.decoder(tgt_x, memory, src_mask, tgt_mask)
+        dec_self_mask = None
+        dec_cross_mask = enc_attn_mask
+        if tgt_mask is not None:
+            if tgt_mask.dtype != torch.bool:
+                tgt_mask = tgt_mask.to(torch.bool)
+            dec_self_mask = (~tgt_mask).unsqueeze(1)  # (B, 1, Q, K)
+
+        out = self.decoder(tgt_x, memory, dec_self_mask, dec_cross_mask)
         
         return self.reconstructor(out)
 
